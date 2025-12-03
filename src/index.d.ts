@@ -56,9 +56,10 @@ export interface MarkdownNiceProps {
     isAliyunOpen: boolean;
     isGiteeOpen: boolean;
     isGitHubOpen: boolean;
+    isAWSOpen: boolean;
   };
 }
 
-declare class MarkdownNice extends React.Component<MarkdownNiceProps, any> {}
+declare class MarkdownNice extends React.Component<MarkdownNiceProps, any> { }
 
 export default MarkdownNice;

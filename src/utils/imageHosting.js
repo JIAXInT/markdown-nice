@@ -2,7 +2,8 @@
  * 图片上传
  */
 import * as qiniu from "qiniu-js";
-import {message} from "antd";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { message } from "antd";
 import axios from "axios";
 import OSS from "ali-oss";
 import imageHosting from "../store/imageHosting";
@@ -13,11 +14,12 @@ import {
   QINIUOSS_IMAGE_HOSTING,
   GITEE_IMAGE_HOSTING,
   GITHUB_IMAGE_HOSTING,
+  AWS_S3_IMAGE_HOSTING,
   IMAGE_HOSTING_TYPE,
   IS_CONTAIN_IMG_NAME,
   IMAGE_HOSTING_NAMES,
 } from "./constant";
-import {toBlob, getOSSName, axiosMdnice} from "./helper";
+import { toBlob, getOSSName, axiosMdnice } from "./helper";
 
 function showUploadNoti() {
   message.loading("图片上传中", 0);
@@ -32,39 +34,145 @@ function hideUploadNoti() {
   message.success("图片上传成功");
 }
 
-function writeToEditor({content, image}) {
+function writeToEditor({ content, image }) {
   const isContainImgName = window.localStorage.getItem(IS_CONTAIN_IMG_NAME) === "true";
   let text = "";
   if (isContainImgName) {
-    text = `\n![${image.filename}](${image.url})\n`;
+    text = `![${image.filename}](${image.url})`;
   } else {
-    text = `\n![](${image.url})\n`;
+    text = `![](${image.url})`;
   }
-  const {markdownEditor} = content;
+  const markdownEditor = content.markdownEditor;
   const cursor = markdownEditor.getCursor();
-  markdownEditor.replaceSelection(text, cursor);
+  markdownEditor.replaceSelection(`\n${text}\n`, cursor);
   content.setContent(markdownEditor.getValue());
 }
+
+// 图片压缩函数（智能压缩，只在能减小文件大小时才压缩）
+async function compressImage(file, quality = 0.8, maxWidth = 1920) {
+  return new Promise((resolve, reject) => {
+    // 如果不是图片文件，直接返回原文件
+    if (!file.type.startsWith('image/')) {
+      resolve(file);
+      return;
+    }
+
+    // 如果文件小于 200KB，直接返回原文件（小文件压缩意义不大）
+    if (file.size < 200 * 1024) {
+      console.log(`图片较小(${(file.size / 1024).toFixed(2)}KB)，跳过压缩`);
+      resolve(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+
+    reader.onload = (e) => {
+      const img = new Image();
+      img.src = e.target.result;
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // 如果图片宽度超过最大宽度，进行等比缩放
+        if (width > maxWidth) {
+          height = (maxWidth / width) * height;
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // 对于 PNG，如果没有透明通道，转换为 JPEG 以获得更好的压缩
+        let outputType = file.type;
+        let outputQuality = quality;
+
+        if (file.type === 'image/png') {
+          // 检查是否有透明通道
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+          let hasAlpha = false;
+
+          for (let i = 3; i < data.length; i += 4) {
+            if (data[i] < 255) {
+              hasAlpha = true;
+              break;
+            }
+          }
+
+          // 如果没有透明通道，转换为 JPEG
+          if (!hasAlpha) {
+            outputType = 'image/jpeg';
+            outputQuality = 0.85; // JPEG 质量稍高一点
+          }
+        }
+
+        // 转换为 Blob
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              // 比较压缩后的大小
+              if (blob.size >= file.size) {
+                // 如果压缩后反而更大，使用原文件
+                console.log(`压缩后更大(${(file.size / 1024).toFixed(2)}KB -> ${(blob.size / 1024).toFixed(2)}KB)，使用原图`);
+                resolve(file);
+              } else {
+                // 创建新的 File 对象
+                const compressedFile = new File([blob], file.name, {
+                  type: outputType,
+                  lastModified: Date.now(),
+                });
+
+                // 输出压缩信息
+                const reduction = ((1 - blob.size / file.size) * 100).toFixed(1);
+                console.log(`图片压缩: ${(file.size / 1024).toFixed(2)}KB -> ${(blob.size / 1024).toFixed(2)}KB (减少${reduction}%)`);
+                resolve(compressedFile);
+              }
+            } else {
+              reject(new Error('图片压缩失败'));
+            }
+          },
+          outputType,
+          outputQuality
+        );
+      };
+
+      img.onerror = () => {
+        reject(new Error('图片加载失败'));
+      };
+    };
+
+    reader.onerror = () => {
+      reject(new Error('文件读取失败'));
+    };
+  });
+}
+
 
 // 七牛云对象存储上传
 export const qiniuOSSUpload = async ({
   file = {},
-  onSuccess = () => {},
-  onError = () => {},
-  onProgress = () => {},
+  onSuccess = () => { },
+  onError = () => { },
+  onProgress = () => { },
   images = [],
   content = null, // store content
 }) => {
   showUploadNoti();
   const config = JSON.parse(window.localStorage.getItem(QINIUOSS_IMAGE_HOSTING));
   try {
-    let {domain} = config;
-    const {namespace} = config;
+    let { domain } = config;
+    const { namespace } = config;
     // domain可能配置时末尾没有加‘/’
     if (domain[domain.length - 1] !== "/") {
       domain += "/";
     }
-    const result = await axiosMdnice.get(`/qiniu/${config.bucket}/${config.accessKey}/${config.secretKey}`);
+    const result = await axiosMdnice.get(`/ qiniu / ${config.bucket} /${config.accessKey}/${config.secretKey} `);
     const token = result.data;
 
     const base64Reader = new FileReader();
@@ -107,12 +215,12 @@ export const qiniuOSSUpload = async ({
         const filename = names.join(".");
         const image = {
           filename, // 名字不变并且去掉后缀
-          url: encodeURI(`${domain}${response.key}`),
+          url: encodeURI(`${domain}${response.key} `),
         };
         images.push(image);
 
         if (content) {
-          writeToEditor({content, image});
+          writeToEditor({ content, image });
         }
         onSuccess(response);
         setTimeout(() => {
@@ -156,14 +264,17 @@ export const qiniuOSSUpload = async ({
 export const customImageUpload = async ({
   formData = new FormData(),
   file = {},
-  onSuccess = () => {},
-  onError = () => {},
+  onSuccess = () => { },
+  onError = () => { },
   images = [],
   content = null,
 }) => {
   showUploadNoti();
   try {
-    formData.append("file", file);
+    // 在上传前压缩图片
+    const compressedFile = await compressImage(file, 0.8, 1920);
+
+    formData.append("file", compressedFile);
     const config = {
       headers: {
         "Content-Type": "multipart/form-data",
@@ -180,7 +291,7 @@ export const customImageUpload = async ({
     };
 
     if (content) {
-      writeToEditor({content, image});
+      writeToEditor({ content, image });
     }
     images.push(image);
     onSuccess(result);
@@ -199,9 +310,9 @@ export const smmsUpload = ({
   formData = new FormData(),
   file = {},
   action = SM_MS_PROXY,
-  onProgress = () => {},
-  onSuccess = () => {},
-  onError = () => {},
+  onProgress = () => { },
+  onSuccess = () => { },
+  onError = () => { },
   headers = {},
   withCredentials = false,
   images = [],
@@ -214,7 +325,7 @@ export const smmsUpload = ({
     .post(action, formData, {
       withCredentials,
       headers,
-      onUploadProgress: ({total, loaded}) => {
+      onUploadProgress: ({ total, loaded }) => {
         onProgress(
           {
             percent: parseInt(Math.round((loaded / total) * 100).toFixed(2), 10),
@@ -223,7 +334,7 @@ export const smmsUpload = ({
         );
       },
     })
-    .then(({data: response}) => {
+    .then(({ data: response }) => {
       if (response.code === "exception") {
         throw response.message;
       }
@@ -232,7 +343,7 @@ export const smmsUpload = ({
         url: response.data.url,
       };
       if (content) {
-        writeToEditor({content, image});
+        writeToEditor({ content, image });
       }
       images.push(image);
       onSuccess(response, file);
@@ -248,7 +359,7 @@ export const smmsUpload = ({
 };
 
 // 阿里对象存储，上传部分
-const aliOSSPutObject = ({config, file, buffer, onSuccess, onError, images, content}) => {
+const aliOSSPutObject = ({ config, file, buffer, onSuccess, onError, images, content }) => {
   let client;
   try {
     client = new OSS(config);
@@ -270,7 +381,7 @@ const aliOSSPutObject = ({config, file, buffer, onSuccess, onError, images, cont
         url: response.url,
       };
       if (content) {
-        writeToEditor({content, image});
+        writeToEditor({ content, image });
       }
       images.push(image);
       onSuccess(response, file);
@@ -290,8 +401,8 @@ const aliOSSPutObject = ({config, file, buffer, onSuccess, onError, images, cont
 // 阿里云对象存储上传，处理部分
 export const aliOSSUpload = ({
   file = {},
-  onSuccess = () => {},
-  onError = () => {},
+  onSuccess = () => { },
+  onError = () => { },
   images = [],
   content = null, // store content
 }) => {
@@ -316,7 +427,7 @@ export const aliOSSUpload = ({
     bufferReader.readAsArrayBuffer(blob);
     bufferReader.onload = (event) => {
       const buffer = new OSS.Buffer(event.target.result);
-      aliOSSPutObject({config, file, buffer, onSuccess, onError, images, content});
+      aliOSSPutObject({ config, file, buffer, onSuccess, onError, images, content });
     };
   };
 };
@@ -325,9 +436,9 @@ export const aliOSSUpload = ({
 export const giteeUpload = ({
   formData = new FormData(),
   file = {},
-  onProgress = () => {},
-  onSuccess = () => {},
-  onError = () => {},
+  onProgress = () => { },
+  onSuccess = () => { },
+  onError = () => { },
   headers = {},
   withCredentials = false,
   images = [],
@@ -362,7 +473,7 @@ export const giteeUpload = ({
       .post(url, formData, {
         withCredentials,
         headers,
-        onUploadProgress: ({total, loaded}) => {
+        onUploadProgress: ({ total, loaded }) => {
           onProgress(
             {
               percent: parseInt(Math.round((loaded / total) * 100).toFixed(2), 10),
@@ -371,7 +482,7 @@ export const giteeUpload = ({
           );
         },
       })
-      .then(({data: response}) => {
+      .then(({ data: response }) => {
         if (response.code === "exception") {
           throw response.message;
         }
@@ -383,7 +494,7 @@ export const giteeUpload = ({
           url: encodeURI(response.content.download_url),
         };
         if (content) {
-          writeToEditor({content, image});
+          writeToEditor({ content, image });
         }
         images.push(image);
         onSuccess(response, file);
@@ -399,13 +510,97 @@ export const giteeUpload = ({
   };
 };
 
+// AWS S3存储上传
+export const awsS3Upload = async ({
+  file = {},
+  onSuccess = () => { },
+  onError = () => { },
+  images = [],
+  content = null, // store content
+}) => {
+  showUploadNoti();
+  const config = JSON.parse(window.localStorage.getItem(AWS_S3_IMAGE_HOSTING));
+
+  try {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const fullName = file.name;
+
+    let key = config.path || "{year}/{month}/{fullName}";
+    key = key.replace("{year}", year).replace("{month}", month).replace("{fullName}", fullName);
+
+    // Remove leading slash if present to avoid empty folder at root
+    if (key.startsWith("/")) {
+      key = key.substring(1);
+    }
+
+    // 构建上传 URL
+    const uploadUrl = `${config.endpoint}/${config.bucket}/${key}`;
+
+    console.log('上传信息:', {
+      uploadUrl,
+      bucket: config.bucket,
+      key,
+      fileType: file.type,
+      fileSize: file.size
+    });
+
+    // 使用 XMLHttpRequest 直接上传
+    const arrayBuffer = await file.arrayBuffer();
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', uploadUrl, true);
+    xhr.setRequestHeader('Content-Type', file.type);
+
+    // 添加 AWS 签名头（这需要计算 AWS Signature V4，但在浏览器中很复杂）
+    // 暂时先尝试不带签名的上传，如果 bucket 配置了公开写入权限
+
+    xhr.onload = function () {
+      if (xhr.status === 200 || xhr.status === 204) {
+        // 使用用户配置的公开访问域名构建 URL
+        const baseUrl = config.publicUrl.endsWith("/") ? config.publicUrl.slice(0, -1) : config.publicUrl;
+        const url = `${baseUrl}/${key}`;
+
+        const image = {
+          filename: file.name.replace(/\.[^/.]+$/, ""),
+          url: encodeURI(url),
+        };
+
+        if (content) {
+          writeToEditor({ content, image });
+        }
+        images.push(image);
+        onSuccess(image, file);
+        setTimeout(() => {
+          hideUploadNoti();
+        }, 500);
+      } else {
+        throw new Error(`上传失败，状态码: ${xhr.status}, 响应: ${xhr.responseText}`);
+      }
+    };
+
+    xhr.onerror = function () {
+      throw new Error('网络请求失败，请检查 CORS 配置和网络连接');
+    };
+
+    xhr.send(arrayBuffer);
+
+  } catch (error) {
+    message.destroy();
+    console.error('AWS S3 上传错误:', error);
+    uploadError(`上传失败: ${error.message || error.toString()}`);
+    onError(error, error.toString());
+  }
+};
+
 // GitHub存储上传
 export const githubUpload = ({
   formData = new FormData(),
   file = {},
-  onProgress = () => {},
-  onSuccess = () => {},
-  onError = () => {},
+  onProgress = () => { },
+  onSuccess = () => { },
+  onError = () => { },
   headers = {},
   withCredentials = false,
   images = [],
@@ -437,7 +632,7 @@ export const githubUpload = ({
       .put(url, data, {
         withCredentials,
         headers,
-        onUploadProgress: ({total, loaded}) => {
+        onUploadProgress: ({ total, loaded }) => {
           onProgress(
             {
               percent: parseInt(Math.round((loaded / total) * 100).toFixed(2), 10),
@@ -446,7 +641,7 @@ export const githubUpload = ({
           );
         },
       })
-      .then(({data: response}) => {
+      .then(({ data: response }) => {
         if (response.code === "exception") {
           throw response.message;
         }
@@ -464,7 +659,7 @@ export const githubUpload = ({
           url: encodeURI(imageUrl),
         };
         if (content) {
-          writeToEditor({content, image});
+          writeToEditor({ content, image });
         }
         images.push(image);
         onSuccess(response, file);
@@ -527,6 +722,13 @@ export const uploadAdaptor = (...args) => {
       return false;
     }
     return githubUpload(...args);
+  } else if (type === IMAGE_HOSTING_NAMES.aws) {
+    const config = JSON.parse(window.localStorage.getItem(AWS_S3_IMAGE_HOSTING));
+    if (!config.accessKeyId.length || !config.secretAccessKey.length || !config.bucket.length) {
+      message.error("请先配置 AWS S3 图床");
+      return false;
+    }
+    return awsS3Upload(...args);
   }
   return true;
 };

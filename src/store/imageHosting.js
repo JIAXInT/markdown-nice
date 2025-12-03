@@ -1,10 +1,11 @@
-import {observable, action} from "mobx";
+import { observable, action } from "mobx";
 import {
   IMAGE_HOSTING_TYPE,
   ALIOSS_IMAGE_HOSTING,
   QINIUOSS_IMAGE_HOSTING,
   GITEE_IMAGE_HOSTING,
   GITHUB_IMAGE_HOSTING,
+  AWS_S3_IMAGE_HOSTING,
 } from "../utils/constant";
 
 class ImageHosting {
@@ -85,6 +86,20 @@ if (!window.localStorage.getItem(GITHUB_IMAGE_HOSTING)) {
     jsdelivr: "true",
   });
   window.localStorage.setItem(GITHUB_IMAGE_HOSTING, github);
+}
+
+// 如果为空先把数据放进去
+if (!window.localStorage.getItem(AWS_S3_IMAGE_HOSTING)) {
+  const aws = JSON.stringify({
+    accessKeyId: "",
+    secretAccessKey: "",
+    bucket: "",
+    region: "",
+    endpoint: "",
+    publicUrl: "",
+    path: "{year}/{month}/{fullName}",
+  });
+  window.localStorage.setItem(AWS_S3_IMAGE_HOSTING, aws);
 }
 
 store.type = window.localStorage.getItem(IMAGE_HOSTING_TYPE);

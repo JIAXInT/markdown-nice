@@ -41,7 +41,7 @@ const sassModuleRegex = /\.module\.(scss|sass)$/;
 
 // This is the production and development configuration.
 // It is focused on developer experience, fast rebuilds, and a minimal bundle.
-module.exports = function(webpackEnv) {
+module.exports = function (webpackEnv) {
   const isEnvDevelopment = webpackEnv === "development";
   const isEnvProduction = webpackEnv === "production";
 
@@ -66,7 +66,7 @@ module.exports = function(webpackEnv) {
       isEnvDevelopment && require.resolve("style-loader"),
       isEnvProduction && {
         loader: MiniCssExtractPlugin.loader,
-        options: Object.assign({}, shouldUseRelativeAssetPaths ? {publicPath: "../../"} : undefined),
+        options: Object.assign({}, shouldUseRelativeAssetPaths ? { publicPath: "../../" } : undefined),
       },
       {
         loader: require.resolve("css-loader"),
@@ -202,13 +202,13 @@ module.exports = function(webpackEnv) {
             parser: safePostCssParser,
             map: shouldUseSourceMap
               ? {
-                  // `inline: false` forces the sourcemap to be output into a
-                  // separate file
-                  inline: false,
-                  // `annotation: true` appends the sourceMappingURL to the end of
-                  // the css file, helping the browser find the sourcemap
-                  annotation: true,
-                }
+                // `inline: false` forces the sourcemap to be output into a
+                // separate file
+                inline: false,
+                // `annotation: true` appends the sourceMappingURL to the end of
+                // the css file, helping the browser find the sourcemap
+                annotation: true,
+              }
               : false,
           },
         }),
@@ -270,7 +270,7 @@ module.exports = function(webpackEnv) {
       strictExportPresence: true,
       rules: [
         // Disable require.ensure as it's not a standard language feature.
-        {parser: {requireEnsure: false}},
+        { parser: { requireEnsure: false } },
         {
           // "oneOf" will traverse all following loaders until one will
           // match the requirements. When no loader matches it will fall
@@ -326,7 +326,13 @@ module.exports = function(webpackEnv) {
                 babelrc: false,
                 configFile: false,
                 compact: false,
-                presets: [[require.resolve("babel-preset-react-app/dependencies"), {helpers: true}]],
+                presets: [[require.resolve("babel-preset-react-app/dependencies"), { helpers: true }]],
+                plugins: [
+                  require.resolve("@babel/plugin-proposal-optional-chaining"),
+                  require.resolve("@babel/plugin-proposal-nullish-coalescing-operator"),
+                  require.resolve("@babel/plugin-proposal-class-properties"),
+                  require.resolve("@babel/plugin-proposal-numeric-separator"),
+                ],
                 cacheDirectory: true,
                 cacheCompression: isEnvProduction,
 
@@ -441,19 +447,19 @@ module.exports = function(webpackEnv) {
           },
           isEnvProduction
             ? {
-                minify: {
-                  removeComments: true,
-                  collapseWhitespace: true,
-                  removeRedundantAttributes: true,
-                  useShortDoctype: true,
-                  removeEmptyAttributes: true,
-                  removeStyleLinkTypeAttributes: true,
-                  keepClosingSlash: true,
-                  minifyJS: true,
-                  minifyCSS: true,
-                  minifyURLs: true,
-                },
-              }
+              minify: {
+                removeComments: true,
+                collapseWhitespace: true,
+                removeRedundantAttributes: true,
+                useShortDoctype: true,
+                removeEmptyAttributes: true,
+                removeStyleLinkTypeAttributes: true,
+                keepClosingSlash: true,
+                minifyJS: true,
+                minifyCSS: true,
+                minifyURLs: true,
+              },
+            }
             : undefined,
         ),
       ),
@@ -488,12 +494,12 @@ module.exports = function(webpackEnv) {
       // See https://github.com/facebook/create-react-app/issues/186
       isEnvDevelopment && new WatchMissingNodeModulesPlugin(paths.appNodeModules),
       isEnvProduction &&
-        new MiniCssExtractPlugin({
-          // Options similar to the same options in webpackOptions.output
-          // both options are optional
-          filename: "static/css/[name].[contenthash:8].css",
-          chunkFilename: "static/css/[name].[contenthash:8].chunk.css",
-        }),
+      new MiniCssExtractPlugin({
+        // Options similar to the same options in webpackOptions.output
+        // both options are optional
+        filename: "static/css/[name].[contenthash:8].css",
+        chunkFilename: "static/css/[name].[contenthash:8].chunk.css",
+      }),
       // Generate a manifest file which contains a mapping of all asset filenames
       // to their corresponding output file so that tools can pick it up without
       // having to parse `index.html`.
@@ -510,85 +516,85 @@ module.exports = function(webpackEnv) {
       // Generate a service worker script that will precache, and keep up to date,
       // the HTML & assets that are part of the Webpack build.
       isEnvProduction &&
-        new WorkboxWebpackPlugin.GenerateSW({
-          clientsClaim: true,
-          skipWaiting: true,
-          exclude: [/\.map$/, /asset-manifest\.json$/],
-          importWorkboxFrom: 'local',
-          navigateFallback: publicUrl + '/index.html',
-          navigateFallbackBlacklist: [
-            // Exclude URLs starting with /_, as they're likely an API call
-            new RegExp("^/_"),
-            // Exclude URLs containing a dot, as they're likely a resource in
-            // public/ and not a SPA route
-            new RegExp("/[^/]+\\.[^/]+$"),
-          ],
-          runtimeCaching: [
-            // 配置路由请求缓存 对应 workbox.routing.registerRoute
-            {
-              urlPattern: /.*\.js/, // 匹配文件
-              handler: "networkFirst", // 网络优先
-            },
-            {
-              urlPattern: /.*\.css/,
-              handler: "staleWhileRevalidate", // 缓存优先同时后台更新
-              options: {
-                // 这里可以设置 cacheName 和添加插件
-                plugins: [
-                  {
-                    cacheableResponse: {
-                      statuses: [0, 200],
-                    },
+      new WorkboxWebpackPlugin.GenerateSW({
+        clientsClaim: true,
+        skipWaiting: true,
+        exclude: [/\.map$/, /asset-manifest\.json$/],
+        importWorkboxFrom: 'local',
+        navigateFallback: publicUrl + '/index.html',
+        navigateFallbackBlacklist: [
+          // Exclude URLs starting with /_, as they're likely an API call
+          new RegExp("^/_"),
+          // Exclude URLs containing a dot, as they're likely a resource in
+          // public/ and not a SPA route
+          new RegExp("/[^/]+\\.[^/]+$"),
+        ],
+        runtimeCaching: [
+          // 配置路由请求缓存 对应 workbox.routing.registerRoute
+          {
+            urlPattern: /.*\.js/, // 匹配文件
+            handler: "networkFirst", // 网络优先
+          },
+          {
+            urlPattern: /.*\.css/,
+            handler: "staleWhileRevalidate", // 缓存优先同时后台更新
+            options: {
+              // 这里可以设置 cacheName 和添加插件
+              plugins: [
+                {
+                  cacheableResponse: {
+                    statuses: [0, 200],
                   },
-                ],
-              },
-            },
-            {
-              urlPattern: /.*\.(png|jpg|jpeg|svg|gif)/,
-              handler: "cacheFirst", // 缓存优先
-              options: {
-                cacheName: 'images',
-                expiration: {
-                  maxAgeSeconds: 24 * 60 * 60, // 最长缓存时间,
-                  maxEntries: 50, // 最大缓存图片数量
                 },
+              ],
+            },
+          },
+          {
+            urlPattern: /.*\.(png|jpg|jpeg|svg|gif)/,
+            handler: "cacheFirst", // 缓存优先
+            options: {
+              cacheName: 'images',
+              expiration: {
+                maxAgeSeconds: 24 * 60 * 60, // 最长缓存时间,
+                maxEntries: 50, // 最大缓存图片数量
               },
             },
-            {
-              urlPattern: /.*\.html/,
-              handler: "networkFirst",
-            },
-          ],
-        }),
+          },
+          {
+            urlPattern: /.*\.html/,
+            handler: "networkFirst",
+          },
+        ],
+      }),
       // TypeScript type checking
       useTypeScript &&
-        new ForkTsCheckerWebpackPlugin({
-          typescript: resolve.sync("typescript", {
-            basedir: paths.appNodeModules,
-          }),
-          async: false,
-          checkSyntacticErrors: true,
-          tsconfig: paths.appTsConfig,
-          compilerOptions: {
-            module: "esnext",
-            moduleResolution: "node",
-            resolveJsonModule: true,
-            isolatedModules: true,
-            noEmit: true,
-            jsx: "preserve",
-          },
-          reportFiles: [
-            "**",
-            "!**/*.json",
-            "!**/__tests__/**",
-            "!**/?(*.)(spec|test).*",
-            "!**/src/setupProxy.*",
-            "!**/src/setupTests.*",
-          ],
-          watch: paths.appSrc,
-          silent: true,
-          formatter: typescriptFormatter,
+      new ForkTsCheckerWebpackPlugin({
+        typescript: resolve.sync("typescript", {
+          basedir: paths.appNodeModules,
         }),
+        async: false,
+        checkSyntacticErrors: true,
+        tsconfig: paths.appTsConfig,
+        compilerOptions: {
+          module: "esnext",
+          moduleResolution: "node",
+          resolveJsonModule: true,
+          isolatedModules: true,
+          noEmit: true,
+          jsx: "preserve",
+        },
+        reportFiles: [
+          "**",
+          "!**/*.json",
+          "!**/__tests__/**",
+          "!**/?(*.)(spec|test).*",
+          "!**/src/setupProxy.*",
+          "!**/src/setupTests.*",
+        ],
+        watch: paths.appSrc,
+        silent: true,
+        formatter: typescriptFormatter,
+      }),
     ].filter(Boolean),
     // Some libraries import Node modules but don't use them in the browser.
     // Tell Webpack to provide empty mocks for them so importing them works.

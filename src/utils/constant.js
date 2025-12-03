@@ -31,6 +31,7 @@ export const ALIOSS_IMAGE_HOSTING = "alioss_image_hosting";
 export const GITEE_IMAGE_HOSTING = "gitee_image_hosting";
 export const GITHUB_IMAGE_HOSTING = "github_image_hosting";
 export const QINIUOSS_IMAGE_HOSTING = "qiniuoss_image_hosting";
+export const AWS_S3_IMAGE_HOSTING = "aws_s3_image_hosting";
 export const IMAGE_HOSTING_TYPE = "image_hosting_type";
 export const BASIC_THEME_ID = "basic-theme";
 export const CODE_THEME_ID = "code-theme";
@@ -44,6 +45,7 @@ export const IMAGE_HOSTING_NAMES = {
   qiniuyun: "七牛云",
   gitee: "Gitee",
   github: "GitHub",
+  aws: "AWS S3",
 };
 
 export const RIGHT_SYMBOL = "✔️";

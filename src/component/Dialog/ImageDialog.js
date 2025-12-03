@@ -1,6 +1,6 @@
-import React, {Component} from "react";
-import {observer, inject} from "mobx-react";
-import {Modal, Upload, Tabs, Select} from "antd";
+import React, { Component } from "react";
+import { observer, inject } from "mobx-react";
+import { Modal, Upload, Tabs, Select } from "antd";
 
 import SvgIcon from "../../icon";
 
@@ -8,14 +8,15 @@ import AliOSS from "../ImageHosting/AliOSS";
 import QiniuOSS from "../ImageHosting/QiniuOSS";
 import Gitee from "../ImageHosting/Gitee";
 import GitHub from "../ImageHosting/GitHub";
+import AWS from "../ImageHosting/AWS";
 
-import {uploadAdaptor} from "../../utils/imageHosting";
-import {SM_MS_PROXY, IMAGE_HOSTING_TYPE, IMAGE_HOSTING_NAMES} from "../../utils/constant";
+import { uploadAdaptor } from "../../utils/imageHosting";
+import { SM_MS_PROXY, IMAGE_HOSTING_TYPE, IMAGE_HOSTING_NAMES } from "../../utils/constant";
 import appContext from "../../utils/appContext";
 
-const {Dragger} = Upload;
-const {TabPane} = Tabs;
-const {Option} = Select;
+const { Dragger } = Upload;
+const { TabPane } = Tabs;
+const { Option } = Select;
 
 @inject("dialog")
 @inject("content")
@@ -43,7 +44,7 @@ class ImageDialog extends Component {
     }
     // 重新初始化
     this.images = [];
-    const {markdownEditor} = this.props.content;
+    const { markdownEditor } = this.props.content;
     const cursor = markdownEditor.getCursor();
     markdownEditor.replaceSelection(text, cursor);
     // 上传后实时更新内容
@@ -60,9 +61,9 @@ class ImageDialog extends Component {
     this.props.dialog.setImageOpen(false);
   };
 
-  customRequest = ({action, data, file, headers, onError, onProgress, onSuccess, withCredentials}) => {
+  customRequest = ({ action, data, file, headers, onError, onProgress, onSuccess, withCredentials }) => {
     const formData = new FormData();
-    const {images} = this;
+    const { images } = this;
     if (data) {
       Object.keys(data).forEach((key) => {
         formData.append(key, data[key]);
@@ -70,27 +71,31 @@ class ImageDialog extends Component {
     }
     // 使用阿里云图床
     if (this.props.imageHosting.type === "阿里云") {
-      uploadAdaptor({file, onSuccess, onError, images});
+      uploadAdaptor({ file, onSuccess, onError, images });
     }
     // 使用七牛云图床
     else if (this.props.imageHosting.type === "七牛云") {
-      uploadAdaptor({file, onSuccess, onError, onProgress, images});
+      uploadAdaptor({ file, onSuccess, onError, onProgress, images });
     }
     // 使用SM.MS图床
     else if (this.props.imageHosting.type === "SM.MS") {
-      uploadAdaptor({formData, file, action, onProgress, onSuccess, onError, headers, withCredentials});
+      uploadAdaptor({ formData, file, action, onProgress, onSuccess, onError, headers, withCredentials });
     }
     // 使用Gitee图床
     else if (this.props.imageHosting.type === "Gitee") {
-      uploadAdaptor({formData, file, action, onProgress, onSuccess, onError, headers, withCredentials, images});
+      uploadAdaptor({ formData, file, action, onProgress, onSuccess, onError, headers, withCredentials, images });
     }
     // 使用GitHub图床
     else if (this.props.imageHosting.type === "GitHub") {
-      uploadAdaptor({formData, file, action, onProgress, onSuccess, onError, headers, withCredentials, images});
+      uploadAdaptor({ formData, file, action, onProgress, onSuccess, onError, headers, withCredentials, images });
+    }
+    // 使用AWS S3图床
+    else if (this.props.imageHosting.type === "AWS S3") {
+      uploadAdaptor({ file, onSuccess, onError, onProgress, images });
     }
     // 使用用户提供的图床或是默认mdnice图床
     else {
-      uploadAdaptor({formData, file, onSuccess, onError, images});
+      uploadAdaptor({ formData, file, onSuccess, onError, images });
     }
 
     return {
@@ -106,7 +111,7 @@ class ImageDialog extends Component {
   };
 
   render() {
-    const {hostingList, type} = this.props.imageHosting;
+    const { hostingList, type } = this.props.imageHosting;
 
     const columns = hostingList.map((option, index) => (
       <Option key={index} value={option.value}>
@@ -115,7 +120,7 @@ class ImageDialog extends Component {
     ));
 
     const imageHostingSwitch = (
-      <Select style={{width: "90px"}} value={type} onChange={this.typeChange}>
+      <Select style={{ width: "90px" }} value={type} onChange={this.typeChange}>
         {columns}
       </Select>
     );
@@ -128,10 +133,10 @@ class ImageDialog extends Component {
         visible={this.props.dialog.isImageOpen}
         onOk={this.handleOk}
         onCancel={this.handleCancel}
-        bodyStyle={{paddingTop: "10px"}}
+        bodyStyle={{ paddingTop: "10px" }}
       >
         <appContext.Consumer>
-          {({useImageHosting}) => (
+          {({ useImageHosting }) => (
             <Tabs tabBarExtraContent={imageHostingSwitch} type="card">
               <TabPane tab="图片上传" key="1">
                 <Dragger name="file" multiple action={SM_MS_PROXY} customRequest={this.customRequest}>
@@ -160,6 +165,11 @@ class ImageDialog extends Component {
               {useImageHosting.isGitHubOpen ? (
                 <TabPane tab={IMAGE_HOSTING_NAMES.github} key="5">
                   <GitHub />
+                </TabPane>
+              ) : null}
+              {useImageHosting.isAWSOpen ? (
+                <TabPane tab={IMAGE_HOSTING_NAMES.aws} key="6">
+                  <AWS />
                 </TabPane>
               ) : null}
             </Tabs>

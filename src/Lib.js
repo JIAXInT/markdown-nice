@@ -1,7 +1,7 @@
-import React, {Component} from "react";
+import React, { Component } from "react";
 import PropTypes from "prop-types";
-import {Result} from "antd";
-import {Provider} from "mobx-react";
+import { Result } from "antd";
+import { Provider } from "mobx-react";
 
 import "./index.css";
 
@@ -15,11 +15,11 @@ import dialog from "./store/dialog";
 import imageHosting from "./store/imageHosting";
 import view from "./store/view";
 
-import {isPC} from "./utils/helper";
+import { isPC } from "./utils/helper";
 import appContext from "./utils/appContext";
 import SvgIcon from "./icon";
-import {solveWeChatMath, solveZhihuMath, solveHtml} from "./utils/converter";
-import {LAYOUT_ID} from "./utils/constant";
+import { solveWeChatMath, solveZhihuMath, solveHtml } from "./utils/converter";
+import { LAYOUT_ID } from "./utils/constant";
 
 class Lib extends Component {
   getWeChatHtml() {
@@ -94,7 +94,7 @@ class Lib extends Component {
             icon={<SvgIcon name="smile" style={style.svgIcon} />}
             title="请使用 PC 端打开排版工具"
             subTitle="更多 Markdown Nice 信息，请扫码关注公众号「编程如画」"
-            extra={<img alt="" style={{width: "100%"}} src="https://my-wechat.mdnice.com/wechat.jpg" />}
+            extra={<img alt="" style={{ width: "100%" }} src="https://my-wechat.mdnice.com/wechat.jpg" />}
           />
         )}
       </Provider>
@@ -112,12 +112,12 @@ const style = {
 Lib.defaultProps = {
   defaultTitle: "",
   defaultText: "",
-  onTextChange: () => {},
-  onTextBlur: () => {},
-  onTextFocus: () => {},
-  onStyleChange: () => {},
-  onStyleBlur: () => {},
-  onStyleFocus: () => {},
+  onTextChange: () => { },
+  onTextBlur: () => { },
+  onTextFocus: () => { },
+  onStyleChange: () => { },
+  onStyleBlur: () => { },
+  onStyleFocus: () => { },
   token: "",
   // eslint-disable-next-line react/default-props-match-prop-types
   useImageHosting: {
@@ -128,6 +128,7 @@ Lib.defaultProps = {
     isAliyunOpen: true,
     isGiteeOpen: true,
     isGitHubOpen: true,
+    isAWSOpen: true,
   },
 };
 Lib.propTypes = {
@@ -149,6 +150,7 @@ Lib.propTypes = {
     isAliyunOpen: PropTypes.bool,
     isGiteeOpen: PropTypes.bool,
     isGitHubOpen: PropTypes.bool,
+    isAWSOpen: PropTypes.bool,
   }),
 };
 

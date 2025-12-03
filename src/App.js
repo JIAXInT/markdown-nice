@@ -1,9 +1,9 @@
-import React, {Component} from "react";
+import React, { Component } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import "codemirror/addon/search/searchcursor";
 import "codemirror/keymap/sublime";
 import "antd/dist/antd.css";
-import {observer, inject} from "mobx-react";
+import { observer, inject } from "mobx-react";
 import classnames from "classnames";
 import throttle from "lodash.throttle";
 
@@ -29,12 +29,12 @@ import {
   THROTTLE_MATHJAX_TIME,
   THROTTLE_MD_RENDER_TIME,
 } from "./utils/constant";
-import {markdownParser, updateMathjax} from "./utils/helper";
+import { markdownParser, updateMathjax } from "./utils/helper";
 import pluginCenter from "./utils/pluginCenter";
 import appContext from "./utils/appContext";
-import {uploadAdaptor} from "./utils/imageHosting";
-import bindHotkeys, {betterTab, rightClick} from "./utils/hotkey";
-import {message} from "antd";
+import { uploadAdaptor } from "./utils/imageHosting";
+import bindHotkeys, { betterTab, rightClick } from "./utils/hotkey";
+import { message } from "antd";
 
 @inject("content")
 @inject("navbar")
@@ -111,7 +111,7 @@ class App extends Component {
     if (this.props.useImageHosting === undefined) {
       return;
     }
-    const {url, name, isSmmsOpen, isQiniuyunOpen, isAliyunOpen, isGiteeOpen, isGitHubOpen} = this.props.useImageHosting;
+    const { url, name, isSmmsOpen, isQiniuyunOpen, isAliyunOpen, isGiteeOpen, isGitHubOpen, isAWSOpen } = this.props.useImageHosting;
     if (name) {
       this.props.imageHosting.setHostingUrl(url);
       this.props.imageHosting.setHostingName(name);
@@ -132,6 +132,9 @@ class App extends Component {
     if (isGitHubOpen) {
       this.props.imageHosting.addImageHosting(IMAGE_HOSTING_NAMES.github);
     }
+    if (isAWSOpen) {
+      this.props.imageHosting.addImageHosting(IMAGE_HOSTING_NAMES.aws);
+    }
 
     // 第一次进入没有默认图床时
     if (window.localStorage.getItem(IMAGE_HOSTING_TYPE) === null) {
@@ -145,7 +148,11 @@ class App extends Component {
       } else if (isQiniuyunOpen) {
         type = IMAGE_HOSTING_NAMES.qiniuyun;
       } else if (isGiteeOpen) {
-        type = IMAGE_HOSTING_NAMES.isGitee;
+        type = IMAGE_HOSTING_NAMES.gitee;
+      } else if (isGitHubOpen) {
+        type = IMAGE_HOSTING_NAMES.github;
+      } else if (isAWSOpen) {
+        type = IMAGE_HOSTING_NAMES.aws;
       }
       this.props.imageHosting.setType(type);
       window.localStorage.setItem(IMAGE_HOSTING_TYPE, type);
@@ -153,7 +160,7 @@ class App extends Component {
   };
 
   setEditorContent = () => {
-    const {defaultText} = this.props;
+    const { defaultText } = this.props;
     if (defaultText) {
       this.props.content.setContent(defaultText);
     }
@@ -164,20 +171,20 @@ class App extends Component {
   }
 
   solveScreenChange = () => {
-    const {isImmersiveEditing} = this.props.view;
+    const { isImmersiveEditing } = this.props.view;
     this.props.view.setImmersiveEditing(!isImmersiveEditing);
   };
 
   getInstance = (instance) => {
-    instance.editor.on("inputRead", function(cm, event) {
+    instance.editor.on("inputRead", function (cm, event) {
       if (event.origin === "paste") {
         var text = event.text[0]; // pasted string
         var new_text = ""; // any operations here
         cm.refresh();
-        const {length} = cm.getSelections();
+        const { length } = cm.getSelections();
         // my first idea was
         // note: for multiline strings may need more complex calculations
-        cm.replaceRange(new_text, event.from, {line: event.from.line, ch: event.from.ch + text.length});
+        cm.replaceRange(new_text, event.from, { line: event.from.line, ch: event.from.ch + text.length });
         // first solution did'nt work (before i guess to call refresh) so i tried that way, works too
         if (length === 1) {
           cm.execCommand("undo");
@@ -193,7 +200,7 @@ class App extends Component {
 
   handleScroll = () => {
     if (this.props.navbar.isSyncScroll) {
-      const {markdownEditor} = this.props.content;
+      const { markdownEditor } = this.props.content;
       const cmData = markdownEditor.getScrollInfo();
       const editorToTop = cmData.top;
       const editorScrollHeight = cmData.height - cmData.clientHeight;
@@ -252,7 +259,7 @@ class App extends Component {
     }
     for (let i = 0; i < e.dataTransfer.files.length; i++) {
       // console.log(e.dataTransfer.files[i]);
-      uploadAdaptor({file: e.dataTransfer.files[i], content: this.props.content});
+      uploadAdaptor({ file: e.dataTransfer.files[i], content: this.props.content });
     }
   };
 
@@ -260,7 +267,7 @@ class App extends Component {
     const cbData = e.clipboardData;
 
     const insertPasteContent = (cm, content) => {
-      const {length} = cm.getSelections();
+      const { length } = cm.getSelections();
       cm.replaceSelections(Array(length).fill(content));
       this.setState(
         {
@@ -274,7 +281,7 @@ class App extends Component {
 
     if (e.clipboardData && e.clipboardData.files) {
       for (let i = 0; i < e.clipboardData.files.length; i++) {
-        uploadAdaptor({file: e.clipboardData.files[i], content: this.props.content});
+        uploadAdaptor({ file: e.clipboardData.files[i], content: this.props.content });
       }
     }
 
@@ -299,13 +306,13 @@ class App extends Component {
     math.typesetRoot.className = cls;
     math.typesetRoot.setAttribute(MJX_DATA_FORMULA, math.math);
     math.typesetRoot.setAttribute(MJX_DATA_FORMULA_TYPE, cls);
-    math.typesetRoot = doc.adaptor.node(tag, {class: spanClass, style: "cursor:pointer"}, [math.typesetRoot]);
+    math.typesetRoot = doc.adaptor.node(tag, { class: spanClass, style: "cursor:pointer" }, [math.typesetRoot]);
   }
 
   render() {
-    const {previewType} = this.props.navbar;
-    const {isEditAreaOpen, isPreviewAreaOpen, isStyleEditorOpen, isImmersiveEditing} = this.props.view;
-    const {isSearchOpen} = this.props.dialog;
+    const { previewType } = this.props.navbar;
+    const { isEditAreaOpen, isPreviewAreaOpen, isStyleEditorOpen, isImmersiveEditing } = this.props.view;
+    const { isSearchOpen } = this.props.dialog;
 
     const parseHtml = markdownParser.render(this.props.content.content);
 
@@ -338,7 +345,7 @@ class App extends Component {
 
     return (
       <appContext.Consumer>
-        {({defaultTitle, onStyleChange, onStyleBlur, onStyleFocus, token}) => (
+        {({ defaultTitle, onStyleChange, onStyleBlur, onStyleFocus, token }) => (
           <div className="nice-app">
             <Navbar title={defaultTitle} token={token} />
             <div className={textContainerClass}>
