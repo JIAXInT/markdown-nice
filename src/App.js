@@ -11,6 +11,7 @@ import Dialog from "./layout/Dialog";
 import Navbar from "./layout/Navbar";
 import Footer from "./layout/Footer";
 import Sidebar from "./layout/Sidebar";
+import FileSidebar from "./layout/FileSidebar";
 import StyleEditor from "./layout/StyleEditor";
 import EditorMenu from "./layout/EditorMenu";
 import SearchBox from "./component/SearchBox";
@@ -42,6 +43,7 @@ import { message } from "antd";
 @inject("view")
 @inject("dialog")
 @inject("imageHosting")
+@inject("fileSystem")
 @observer
 class App extends Component {
   constructor(props) {
@@ -223,6 +225,9 @@ class App extends Component {
       }
       this.props.content.setContent(content);
       this.props.onTextChange && this.props.onTextChange(content);
+      if (this.props.fileSystem.currentFileId) {
+        this.props.fileSystem.updateFileContent(this.props.fileSystem.currentFileId, content);
+      }
     }
   };
 
@@ -349,6 +354,7 @@ class App extends Component {
           <div className="nice-app">
             <Navbar title={defaultTitle} token={token} />
             <div className={textContainerClass}>
+              <FileSidebar />
               <div id="nice-md-editor" className={mdEditingClass} onMouseOver={(e) => this.setCurrentIndex(1, e)}>
                 {isSearchOpen && <SearchBox />}
                 <CodeMirror

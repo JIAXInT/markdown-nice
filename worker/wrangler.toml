@@ -1,0 +1,8 @@
+name = "markdown-nice-worker"
+main = "index.js"
+compatibility_date = "2023-12-01"
+
+[[d1_databases]]
+binding = "DB" # i.e. available in your Worker on env.DB
+database_name = "markdown-nice-db"
+database_id = "9015e8cc-ec98-4730-a965-f837668acd91"
