@@ -89,10 +89,11 @@
   color: #1890ff;
   box-shadow: 0 2px 8px rgba(24, 144, 255, 0.15);
   transform: translateX(4px);
+  width: 100%;
+
 }
 
 .nice-file-sidebar .ant-tree li .ant-tree-node-content-wrapper.ant-tree-node-selected::before {
-  width: 100%;
   background: linear-gradient(90deg, rgba(24, 144, 255, 0.15) 0%, transparent 100%);
 }
 
@@ -200,4 +201,8 @@
 .nice-file-sidebar .anticon-file-markdown {
   color: #1890ff;
   filter: drop-shadow(0 2px 4px rgba(24, 144, 255, 0.2));
+}
+
+.nice-file-sidebar .ant-tree li span.ant-tree-switcher {
+  display: none !important;
 }

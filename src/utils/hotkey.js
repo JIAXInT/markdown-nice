@@ -1,8 +1,8 @@
 import * as keyEvents from "./editorKeyEvents";
-import {isPlatformWindows} from "./helper";
+import { isPlatformWindows } from "./helper";
 
 const handlePressHotkey = (type, content) => {
-  const {markdownEditor} = content;
+  const { markdownEditor } = content;
   const selection = markdownEditor.getSelection();
   switch (type) {
     case "Bold":
@@ -37,130 +37,136 @@ const handlePressHotkey = (type, content) => {
   content.setContent(editorContent);
 };
 
-const bindHotkeys = (content, dialog) =>
+const bindHotkeys = (content, dialog, onSave) =>
   isPlatformWindows
     ? {
-        "Ctrl-B": () => {
-          handlePressHotkey("Bold", content);
-        },
-        "Ctrl-U": () => {
-          handlePressHotkey("Del", content);
-        },
-        "Ctrl-I": () => {
-          handlePressHotkey("Italic", content);
-        },
-        "Ctrl-Alt-C": () => {
-          handlePressHotkey("Code", content);
-        },
-        "Ctrl-Alt-V": () => {
-          handlePressHotkey("InlineCode", content);
-        },
-        "Ctrl-Alt-1": () => {
-          handlePressHotkey("H1", content);
-        },
-        "Ctrl-Alt-2": () => {
-          handlePressHotkey("H2", content);
-        },
-        "Ctrl-Alt-3": () => {
-          handlePressHotkey("H3", content);
-        },
-        "Ctrl-K": () => {
-          dialog.setLinkOpen(true);
-        },
-        "Ctrl-Alt-I": () => {
-          dialog.setImageOpen(true);
-        },
-        "Ctrl-Alt-T": () => {
-          dialog.setFormOpen(true);
-        },
-        "Ctrl-Alt-S": () => {
-          // Converting between sans serif and serif
-        },
-        "Ctrl-Alt-L": () => {
-          keyEvents.parseLinkToFoot(content.content, content);
-        },
-        "Ctrl-Alt-F": () => {
-          keyEvents.formatDoc(content.content, content);
-        },
-        "Ctrl-F": () => {
-          dialog.setSearchOpen(!dialog.isSearchOpen);
-        },
-      }
+      "Ctrl-S": () => {
+        if (onSave) onSave();
+      },
+      "Ctrl-B": () => {
+        handlePressHotkey("Bold", content);
+      },
+      "Ctrl-U": () => {
+        handlePressHotkey("Del", content);
+      },
+      "Ctrl-I": () => {
+        handlePressHotkey("Italic", content);
+      },
+      "Ctrl-Alt-C": () => {
+        handlePressHotkey("Code", content);
+      },
+      "Ctrl-Alt-V": () => {
+        handlePressHotkey("InlineCode", content);
+      },
+      "Ctrl-Alt-1": () => {
+        handlePressHotkey("H1", content);
+      },
+      "Ctrl-Alt-2": () => {
+        handlePressHotkey("H2", content);
+      },
+      "Ctrl-Alt-3": () => {
+        handlePressHotkey("H3", content);
+      },
+      "Ctrl-K": () => {
+        dialog.setLinkOpen(true);
+      },
+      "Ctrl-Alt-I": () => {
+        dialog.setImageOpen(true);
+      },
+      "Ctrl-Alt-T": () => {
+        dialog.setFormOpen(true);
+      },
+      "Ctrl-Alt-S": () => {
+        // Converting between sans serif and serif
+      },
+      "Ctrl-Alt-L": () => {
+        keyEvents.parseLinkToFoot(content.content, content);
+      },
+      "Ctrl-Alt-F": () => {
+        keyEvents.formatDoc(content.content, content);
+      },
+      "Ctrl-F": () => {
+        dialog.setSearchOpen(!dialog.isSearchOpen);
+      },
+    }
     : {
-        "Cmd-B": () => {
-          handlePressHotkey("Bold", content);
-        },
-        "Cmd-U": () => {
-          handlePressHotkey("Del", content);
-        },
-        "Cmd-I": () => {
-          handlePressHotkey("Italic", content);
-        },
-        "Cmd-Alt-C": () => {
-          handlePressHotkey("Code", content);
-        },
-        "Cmd-Alt-V": () => {
-          handlePressHotkey("InlineCode", content);
-        },
-        "Cmd-Alt-1": () => {
-          handlePressHotkey("H1", content);
-        },
-        "Cmd-Alt-2": () => {
-          handlePressHotkey("H2", content);
-        },
-        "Cmd-Alt-3": () => {
-          handlePressHotkey("H3", content);
-        },
-        "Cmd-K": () => {
-          dialog.setLinkOpen(true);
-        },
-        "Cmd-Alt-I": () => {
-          dialog.setImageOpen(true);
-        },
-        "Cmd-Alt-T": () => {
-          dialog.setFormOpen(true);
-        },
-        "Cmd-Alt-S": () => {
-          // Converting between sans serif and serif
-        },
-        "Cmd-Alt-L": () => {
-          keyEvents.parseLinkToFoot(content.content, content);
-        },
-        "Cmd-Alt-F": () => {
-          keyEvents.formatDoc(content.content, content);
-        },
-        "Cmd-F": () => {
-          dialog.setSearchOpen(!dialog.isSearchOpen);
-        },
-      };
+      "Cmd-S": () => {
+        if (onSave) onSave();
+      },
+      "Cmd-B": () => {
+        handlePressHotkey("Bold", content);
+      },
+      "Cmd-U": () => {
+        handlePressHotkey("Del", content);
+      },
+      "Cmd-I": () => {
+        handlePressHotkey("Italic", content);
+      },
+      "Cmd-Alt-C": () => {
+        handlePressHotkey("Code", content);
+      },
+      "Cmd-Alt-V": () => {
+        handlePressHotkey("InlineCode", content);
+      },
+      "Cmd-Alt-1": () => {
+        handlePressHotkey("H1", content);
+      },
+      "Cmd-Alt-2": () => {
+        handlePressHotkey("H2", content);
+      },
+      "Cmd-Alt-3": () => {
+        handlePressHotkey("H3", content);
+      },
+      "Cmd-K": () => {
+        dialog.setLinkOpen(true);
+      },
+      "Cmd-Alt-I": () => {
+        dialog.setImageOpen(true);
+      },
+      "Cmd-Alt-T": () => {
+        dialog.setFormOpen(true);
+      },
+      "Cmd-Alt-S": () => {
+        // Converting between sans serif and serif
+      },
+      "Cmd-Alt-L": () => {
+        keyEvents.parseLinkToFoot(content.content, content);
+      },
+      "Cmd-Alt-F": () => {
+        keyEvents.formatDoc(content.content, content);
+      },
+      "Cmd-F": () => {
+        dialog.setSearchOpen(!dialog.isSearchOpen);
+      },
+    };
 
 export const hotKeys = isPlatformWindows
   ? {
-      bold: "Ctrl+B",
-      del: "Ctrl+U",
-      italic: "Ctrl+I",
-      code: "Ctrl+Alt+C",
-      inlineCode: "Ctrl+Alt+V",
-      link: "Ctrl+K",
-      image: "Ctrl+Alt+I",
-      form: "Ctrl+Alt+T",
-      format: "Ctrl+Alt+F",
-      linkToFoot: "Ctrl+Alt+L",
-      search: "Ctrl+F",
-    }
+    bold: "Ctrl+B",
+    del: "Ctrl+U",
+    italic: "Ctrl+I",
+    code: "Ctrl+Alt+C",
+    inlineCode: "Ctrl+Alt+V",
+    link: "Ctrl+K",
+    image: "Ctrl+Alt+I",
+    form: "Ctrl+Alt+T",
+    format: "Ctrl+Alt+F",
+    linkToFoot: "Ctrl+Alt+L",
+    search: "Ctrl+F",
+  }
   : {
-      bold: "⌘B",
-      del: "⌘U",
-      italic: "⌘I",
-      code: "⌥⌘C",
-      inlineCode: "⌥⌘V",
-      link: "⌘K",
-      image: "⌥⌘I",
-      form: "⌥⌘T",
-      format: "⌥⌘F",
-      linkToFoot: "⌥⌘L",
-      search: "⌘F",
-    };
+    bold: "⌘B",
+    del: "⌘U",
+    italic: "⌘I",
+    code: "⌥⌘C",
+    inlineCode: "⌥⌘V",
+    link: "⌘K",
+    image: "⌥⌘I",
+    form: "⌥⌘T",
+    format: "⌥⌘F",
+    linkToFoot: "⌥⌘L",
+    search: "⌘F",
+  };
 
 export const betterTab = (cm) => {
   if (cm.somethingSelected()) {

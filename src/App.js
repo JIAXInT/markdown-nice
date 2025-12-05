@@ -6,6 +6,7 @@ import "antd/dist/antd.css";
 import { observer, inject } from "mobx-react";
 import classnames from "classnames";
 import throttle from "lodash.throttle";
+import debounce from "lodash.debounce";
 
 import Dialog from "./layout/Dialog";
 import Navbar from "./layout/Navbar";
@@ -216,6 +217,12 @@ class App extends Component {
     }
   };
 
+  handleCloudSave = debounce((content) => {
+    if (this.props.fileSystem.currentFileId) {
+      this.props.fileSystem.updateFileContent(this.props.fileSystem.currentFileId, content);
+    }
+  }, 1000);
+
   handleChange = (editor) => {
     if (this.state.focus) {
       const content = editor.getValue();
@@ -225,9 +232,7 @@ class App extends Component {
       }
       this.props.content.setContent(content);
       this.props.onTextChange && this.props.onTextChange(content);
-      if (this.props.fileSystem.currentFileId) {
-        this.props.fileSystem.updateFileContent(this.props.fileSystem.currentFileId, content);
-      }
+      this.handleCloudSave(content);
     }
   };
 
@@ -366,7 +371,12 @@ class App extends Component {
                     lineWrapping: true,
                     lineNumbers: false,
                     extraKeys: {
-                      ...bindHotkeys(this.props.content, this.props.dialog),
+                      ...bindHotkeys(this.props.content, this.props.dialog, () => {
+                        const content = this.props.content.content;
+                        this.handleCloudSave(content);
+                        this.handleCloudSave.flush();
+                        message.success("已保存到云端");
+                      }),
                       Tab: betterTab,
                       RightClick: rightClick,
                     },

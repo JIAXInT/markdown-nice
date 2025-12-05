@@ -163,7 +163,7 @@ class FileSidebar extends Component {
             const isFolder = item.type === "folder";
             const title = (
                 <div className="sidebar-tree-title">
-                    <span className="sidebar-tree-title-text">
+                    <span className="sidebar-tree-title-text" title={item.title}>
                         {isFolder ? <Icon type="folder" /> : <Icon type="file-markdown" />} {item.title}
                     </span>
                     <div className="sidebar-tree-actions" onClick={(e) => e.stopPropagation()}>

@@ -1,6 +1,8 @@
 import { observable, action, computed, runInAction } from "mobx";
 import { message } from "antd";
 
+import contentStore from "./content";
+
 // Replace with your actual Worker URL after deployment
 const API_BASE_URL = "https://markdown-nice-worker.1131918725.workers.dev/api/files";
 
@@ -17,26 +19,45 @@ class FileSystem {
     @action
     fetchFiles = async () => {
         this.loading = true;
-        try {
-            const response = await fetch(API_BASE_URL);
-            if (response.ok) {
-                const flatFiles = await response.json();
-                const tree = this.buildTree(flatFiles);
-                runInAction(() => {
-                    this.files = tree;
-                });
-            } else {
-                // Fallback or error handling
-                console.error("Failed to fetch files");
+        let retries = 3;
+        while (retries > 0) {
+            try {
+                const response = await fetch(API_BASE_URL);
+                if (response.ok) {
+                    const flatFiles = await response.json();
+                    const tree = this.buildTree(flatFiles);
+                    runInAction(() => {
+                        this.files = tree;
+                        // Restore last opened file
+                        const lastFileId = localStorage.getItem("currentFileId");
+                        if (lastFileId) {
+                            const node = this.findNode(tree, lastFileId);
+                            if (node && node.type === "file") {
+                                this.currentFileId = lastFileId;
+                                const content = node.content == null ? "" : node.content;
+                                contentStore.setContent(content);
+                            }
+                        }
+                    });
+                    break; // Success
+                } else {
+                    console.error(`Failed to fetch files: ${response.status} ${response.statusText}`);
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+            } catch (error) {
+                console.error(`Error fetching files (attempts left: ${retries - 1}):`, error);
+                retries--;
+                if (retries === 0) {
+                    message.error(`无法连接到数据库: ${error.message}. 请检查网络或配置`);
+                } else {
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
+                }
             }
-        } catch (error) {
-            console.error("Error fetching files:", error);
-            // message.error("无法连接到数据库，请检查网络或配置");
-        } finally {
-            runInAction(() => {
-                this.loading = false;
-            });
         }
+
+        runInAction(() => {
+            this.loading = false;
+        });
     };
 
     buildTree(flatFiles) {
@@ -228,6 +249,11 @@ class FileSystem {
     @action
     setCurrentFileId = (id) => {
         this.currentFileId = id;
+        if (id) {
+            localStorage.setItem("currentFileId", id);
+        } else {
+            localStorage.removeItem("currentFileId");
+        }
     };
 
     @action
